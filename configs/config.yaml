@@ -1,0 +1,24 @@
+company:
+  name: "Tata Motors"
+
+reports:
+
+  FY2022-23:
+    file: "data/raw/tata_motors/FY2022-23.pdf"
+    risk_factor_start: 240
+    risk_factor_end: 273
+
+  FY2023-24:
+    file: "data/raw/tata_motors/FY2023-24.pdf"
+    risk_factor_start: null
+    risk_factor_end: null
+
+  FY2024-25:
+    file: "data/raw/tata_motors/FY2024-25.pdf"
+    risk_factor_start: null
+    risk_factor_end: null
+
+  FY2025-26:
+    file: "data/raw/tata_motors/FY2025-26.pdf"
+    risk_factor_start: null
+    risk_factor_end: null
