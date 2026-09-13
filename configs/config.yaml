@@ -4,7 +4,7 @@ company:
 reports:
 
   FY2022-23:
-    file: "data/raw/tata_motors/FY2022-23.pdf"
+    file: "data/raw/AnnualReport202223.pdf"
     risk_factor_start: 240
     risk_factor_end: 273
 
