@@ -9,9 +9,9 @@ reports:
     risk_factor_end: 273
 
   FY2023-24:
-    file: "data/raw/tata_motors/FY2023-24.pdf"
-    risk_factor_start: null
-    risk_factor_end: null
+    file: "data/raw/tata-motor-IAR-2023-24.pdf"
+    risk_factor_start: 75
+    risk_factor_end: 79
 
   FY2024-25:
     file: "data/raw/tata_motors/FY2024-25.pdf"

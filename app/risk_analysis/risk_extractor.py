@@ -23,6 +23,11 @@ _PAGE_FURNITURE = {
     "1-141",
     "Integrated Report",
     "Risks Factor",
+    "Principal risks",
+    "Description",
+    "Consequences",
+    "Mitigations and opportunities",
+    "Risk management",
 }
 
 
@@ -155,7 +160,7 @@ def _is_risk_heading_line(line: str) -> bool:
         return False
     if "Risks Associated with" in line:
         return False
-    return 8 <= len(line.split()) <= 35
+    return 1 <= len(line.split()) <= 35
 
 
 def extract_risk_records(
