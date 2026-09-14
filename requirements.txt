@@ -4,3 +4,5 @@ gradio
 pandas
 pyyaml
 numpy
+sentence-transformers
+scikit-learn
