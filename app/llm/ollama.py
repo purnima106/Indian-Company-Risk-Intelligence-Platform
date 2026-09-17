@@ -1,6 +1,6 @@
 import json
-from urllib.error import URLError,HttpError
-from urlib.request import urlopen, Request
+from urllib.error import HTTPError, URLError
+from urllib.request import Request, urlopen
 
 from app.llm.base import LLMClient
 
@@ -11,7 +11,7 @@ class OllamaClient(LLMClient):
         self.timeout = timeout
 
     def generate(self, prompt: str) -> str:
-        payload = json.dump(
+        payload = json.dumps(
             {
             "model": self.model,
             "prompt": prompt,
@@ -29,8 +29,8 @@ class OllamaClient(LLMClient):
             )
         try:
             with urlopen(request, timeout=self.timeout) as response:
-                result = json.load(response.read().decode("utf-8"))
-        except (URLError, HttpError, TimeoutError) as error:
+                result = json.loads(response.read().decode("utf-8"))
+        except (URLError, HTTPError, TimeoutError) as error:
             raise RuntimeError(f"Failed to connect to Ollama API: {error}") from error
 
         response_text = result.get("response")
