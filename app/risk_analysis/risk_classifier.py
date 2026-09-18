@@ -50,18 +50,21 @@ It is not proof that the risks are equivalent.
 Use only the supplied evidence.
 Do not invent facts.
 
-Return only valid JSON with these fields:
+Return JSON in exactly this shape:
 
-current_risk_id
-previous_risk_id
-match
-classification
-severity_change
-scope_change
-explanation
-confidence
-current_page
-previous_page
+{{
+  "match": true,
+  "classification": "STABLE",
+  "severity_change": "unchanged",
+  "scope_change": false,
+  "explanation": "Both disclosures describe the same underlying exposure.",
+  "confidence": 85
+}}
+
+Important:
+- match must be true or false, never a similarity score.
+- scope_change must be true or false, never "expanded", "narrowed", or "unchanged".
+- Do not put the embedding similarity inside match.
 
 Allowed classification values:
 
@@ -95,6 +98,79 @@ Embedding similarity:
 {similarity:.4f}
 """
 
+def normalize_llm_response(response: dict, similarity: float) -> dict:
+    """
+    Normalize common Ollama variations before Pydantic validation.
+    """
+
+    match_value = response.get("match")
+
+    if isinstance(match_value, bool):
+        response["match"] = match_value
+
+    elif isinstance(match_value, (int, float)):
+        # Some models place the similarity score in the match field.
+        if 0 <= float(match_value) <= 1:
+            response["match"] = float(match_value) >= 0.82
+        else:
+            raise ValueError(
+                f"Invalid numeric match value: {match_value}"
+            )
+
+    elif isinstance(match_value, str):
+        normalized_match = match_value.strip().lower()
+
+        if normalized_match in {"true", "yes", "match"}:
+            response["match"] = True
+        elif normalized_match in {"false", "no", "no_match"}:
+            response["match"] = False
+        else:
+            raise ValueError(
+                f"Invalid match value returned by LLM: {match_value}"
+            )
+
+    else:
+        response["match"] = similarity >= 0.82
+
+    scope_value = response.get("scope_change")
+
+    if isinstance(scope_value, bool):
+        response["scope_change"] = scope_value
+
+    elif isinstance(scope_value, str):
+        normalized_scope = scope_value.strip().lower()
+
+        if normalized_scope in {
+            "true",
+            "yes",
+            "expanded",
+            "broadened",
+            "broader",
+            "increased",
+            "changed",
+        }:
+            response["scope_change"] = True
+
+        elif normalized_scope in {
+            "false",
+            "no",
+            "unchanged",
+            "same",
+            "none",
+            "not changed",
+        }:
+            response["scope_change"] = False
+
+        else:
+            raise ValueError(
+                f"Invalid scope_change value returned by LLM: {scope_value}"
+            )
+
+    else:
+        response["scope_change"] = False
+
+    return response
+
 
 class RiskClassifier:
     def __init__(self, client: LLMClient):
@@ -121,7 +197,11 @@ class RiskClassifier:
                 "LLM response was not valid JSON."
             ) from error
 
-        # Provenance must come from application data, not the LLM.
+        response = normalize_llm_response(
+            response=response,
+            similarity=similarity,
+        )
+
         response["current_risk_id"] = current_risk["risk_id"]
         response["previous_risk_id"] = previous_risk["risk_id"]
         response["current_page"] = current_risk["page"]

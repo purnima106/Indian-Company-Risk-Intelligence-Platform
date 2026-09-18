@@ -130,6 +130,79 @@ def match_risks(previous_year, current_year, top_k):
     return "\n".join(output)
 
 
+def risk_choices(year):
+    data = load_risk_data(year)
+    if data is None:
+        return []
+    return [
+        (f"{risk['risk_id']} - {risk['title']}", risk["risk_id"])
+        for risk in data["risks"]
+    ]
+
+
+def update_risk_choices(year):
+    choices = risk_choices(year)
+    value = choices[0][1] if choices else None
+    return gr.Dropdown(choices=choices, value=value)
+
+
+def classify_risk_pair(
+    previous_year,
+    previous_risk_id,
+    current_year,
+    current_risk_id,
+    similarity,
+):
+    previous_data = load_risk_data(previous_year)
+    current_data = load_risk_data(current_year)
+    if previous_data is None or current_data is None:
+        return "### Run extraction for both selected years first."
+
+    previous_risk = next(
+        (risk for risk in previous_data["risks"] if risk["risk_id"] == previous_risk_id),
+        None,
+    )
+    current_risk = next(
+        (risk for risk in current_data["risks"] if risk["risk_id"] == current_risk_id),
+        None,
+    )
+    if previous_risk is None or current_risk is None:
+        return "### Select valid risks from both years."
+
+    try:
+        from app.llm.ollama import OllamaClient
+        from app.risk_analysis.risk_classifier import RiskClassifier
+
+        result = RiskClassifier(OllamaClient()).compare_pair(
+            previous_risk=previous_risk,
+            current_risk=current_risk,
+            similarity=float(similarity),
+        )
+    except Exception as error:
+        return (
+            "### Phase 3 classification failed\n\n"
+            f"`{type(error).__name__}: {error}`\n\n"
+            "Confirm that Ollama is running and the selected model is available."
+        )
+
+    return "\n".join(
+        [
+            "# Phase 3 classification",
+            "",
+            f"**Match:** `{result.match}`",
+            f"**Classification:** `{result.classification}`",
+            f"**Severity change:** `{result.severity_change}`",
+            f"**Scope change:** `{result.scope_change}`",
+            f"**Confidence:** `{result.confidence}%`",
+            "",
+            f"**Explanation:** {result.explanation}",
+            "",
+            f"**Previous source:** `{result.previous_risk_id}`, page `{result.previous_page}`",
+            f"**Current source:** `{result.current_risk_id}`, page `{result.current_page}`",
+        ]
+    )
+
+
 with gr.Blocks(
     title="Corporate Risk Intelligence"
 ) as demo:
@@ -177,6 +250,62 @@ with gr.Blocks(
             match_risks,
             inputs=[previous_year, current_year, top_k],
             outputs=match_output,
+        )
+
+    with gr.Tab("Phase 3: LLM Classification"):
+        gr.Markdown(
+            "Select a Phase 2 candidate pair and ask Ollama to validate the match "
+            "and classify the change."
+        )
+        with gr.Row():
+            classifier_previous_year = gr.Dropdown(
+                choices=YEARS,
+                value=YEARS[0],
+                label="Previous year",
+            )
+            classifier_current_year = gr.Dropdown(
+                choices=YEARS,
+                value=YEARS[1],
+                label="Current year",
+            )
+        with gr.Row():
+            classifier_previous_risk = gr.Dropdown(
+                choices=risk_choices(YEARS[0]),
+                value=(risk_choices(YEARS[0]) or [(None, None)])[0][1],
+                label="Previous risk",
+            )
+            classifier_current_risk = gr.Dropdown(
+                choices=risk_choices(YEARS[1]),
+                value=(risk_choices(YEARS[1]) or [(None, None)])[0][1],
+                label="Current risk",
+            )
+        similarity_input = gr.Number(
+            value=0.0,
+            label="Phase 2 similarity score",
+            info="Paste the candidate similarity score from Phase 2.",
+        )
+        classify_button = gr.Button("Classify with Ollama")
+        classification_output = gr.Markdown()
+        classifier_previous_year.change(
+            update_risk_choices,
+            inputs=classifier_previous_year,
+            outputs=classifier_previous_risk,
+        )
+        classifier_current_year.change(
+            update_risk_choices,
+            inputs=classifier_current_year,
+            outputs=classifier_current_risk,
+        )
+        classify_button.click(
+            classify_risk_pair,
+            inputs=[
+                classifier_previous_year,
+                classifier_previous_risk,
+                classifier_current_year,
+                classifier_current_risk,
+                similarity_input,
+            ],
+            outputs=classification_output,
         )
 
 

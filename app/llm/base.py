@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 
-class LLM(ABC):
+class LLMClient(ABC):
     @abstractmethod
     def generate(self, prompt: str) -> str:
         raise NotImplementedError("Subclasses must implement the generate method.")
