@@ -2,7 +2,7 @@ import json
 from pathlib import Path
 
 from app.evaluation.phase4 import (
-    evaluate_predictions,
+    build_phase4_report,
     load_ground_truth,
     save_evaluation_report,
 )
@@ -25,9 +25,16 @@ def main():
         predictions = json.load(handle)
 
     ground_truth = load_ground_truth(ground_truth_path)
-    report = evaluate_predictions(predictions, ground_truth)
-    save_evaluation_report(report, output_path)
 
+    report = build_phase4_report(
+        predictions,
+        ground_truth,
+        candidate_rows=[],
+        relevant_by_current={},
+        prompt_variants={"baseline": predictions},
+    )
+
+    save_evaluation_report(report, output_path)
     print(json.dumps(report, indent=2, ensure_ascii=False))
 
 
