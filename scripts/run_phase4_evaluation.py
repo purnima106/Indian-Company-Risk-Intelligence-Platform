@@ -1,5 +1,10 @@
 import json
+import sys
 from pathlib import Path
+
+project_root = Path(__file__).resolve().parents[1]
+if str(project_root) not in sys.path:
+    sys.path.insert(0, str(project_root))
 
 from app.evaluation.phase4 import (
     build_phase4_report,
@@ -9,8 +14,6 @@ from app.evaluation.phase4 import (
 
 
 def main():
-    project_root = Path(__file__).resolve().parents[1]
-
     predictions_path = project_root / "data" / "outputs" / "phase3_results.json"
     ground_truth_path = project_root / "data" / "processed" / "evaluation_ground_truth.csv"
     output_path = project_root / "data" / "outputs" / "evaluation_results.json"
